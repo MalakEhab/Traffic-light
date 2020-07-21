@@ -1,0 +1,213 @@
+#include <Blynk.h>
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+const char* ssid = "I30";
+const char* pass = "malak2019";
+char auth[] = "I0MVv2qGwIaEDqW-W4k48t-6EEVDzHvj";
+BlynkTimer timer;
+
+int pinValue1,pinValue2,pinValue3;
+
+const int TL1_R = 5; // Here put the pin number for the first traffic light Red Led
+const int TL2_R = 6; // Here put the pin number for the second traffic light Red Led
+const int TL3_R = 7;
+const int TL1_Y = 8;
+const int TL2_Y = 9;
+const int TL3_Y = 10;
+const int TL1_G = 11;
+const int TL2_G = 12;
+const int TL3_G = 13;
+
+const int Yellow_time = 5;  /// 5 seconds
+const int Green_time  = 10; ///10 seconds
+
+int signal1[] = {TL1_R, TL1_Y, TL1_G};
+int signal2[] = {TL2_R, TL2_Y, TL2_G};
+int signal3[] = {TL3_R, TL3_Y, TL3_G};
+int flag[3]={0,0,0};
+int flag_2[3]={0,0,0};
+int counter=0;
+int old_counter;
+
+void myTimerEvent()
+{
+  counter++;
+  if(counter==(1+(3.*Green_time)+(3.*Yellow_time))) counter=1;
+}
+void TL1_G_Fun(){
+  digitalWrite(signal1[2], HIGH);
+  digitalWrite(signal1[1], LOW);
+  digitalWrite(signal1[0], LOW);
+  digitalWrite(signal2[0], HIGH);
+  digitalWrite(signal2[1], LOW);
+  digitalWrite(signal2[2], LOW);
+  digitalWrite(signal3[0], HIGH);
+  digitalWrite(signal3[1], LOW);
+  digitalWrite(signal3[2], LOW);
+  }
+void TL1_Y_Fun(){
+  digitalWrite(signal1[2], LOW);
+  digitalWrite(signal1[1], HIGH);
+  digitalWrite(signal1[0], LOW);
+  digitalWrite(signal2[0], HIGH);
+  digitalWrite(signal2[1], LOW);
+  digitalWrite(signal2[2], LOW);
+  digitalWrite(signal3[0], HIGH);
+  digitalWrite(signal3[1], LOW);
+  digitalWrite(signal3[2], LOW);
+  }
+
+void TL2_G_Fun(){
+  digitalWrite(signal1[2], LOW);
+  digitalWrite(signal1[1], LOW);
+  digitalWrite(signal1[0], HIGH);
+  digitalWrite(signal2[0], LOW);
+  digitalWrite(signal2[1], LOW);
+  digitalWrite(signal2[2], HIGH);
+  digitalWrite(signal3[0], HIGH);
+  digitalWrite(signal3[1], LOW);
+  digitalWrite(signal3[2], LOW);
+  }
+void TL2_Y_Fun(){
+  digitalWrite(signal1[2], LOW);
+  digitalWrite(signal1[1], LOW);
+  digitalWrite(signal1[0], HIGH);
+  digitalWrite(signal2[0], LOW);
+  digitalWrite(signal2[1], HIGH);
+  digitalWrite(signal2[2], LOW);
+  digitalWrite(signal3[0], HIGH);
+  digitalWrite(signal3[1], LOW);
+  digitalWrite(signal3[2], LOW);
+  }
+
+void TL3_G_Fun(){
+  digitalWrite(signal1[2], LOW);
+  digitalWrite(signal1[1], LOW);
+  digitalWrite(signal1[0], HIGH);
+  digitalWrite(signal2[0], HIGH);
+  digitalWrite(signal2[1], LOW);
+  digitalWrite(signal2[2], LOW);
+  digitalWrite(signal3[0], LOW);
+  digitalWrite(signal3[1], LOW);
+  digitalWrite(signal3[2], HIGH);
+  }
+void TL3_Y_Fun(){
+  digitalWrite(signal1[2], LOW);
+  digitalWrite(signal1[1], LOW);
+  digitalWrite(signal1[0], HIGH);
+  digitalWrite(signal2[0], HIGH);
+  digitalWrite(signal2[1], LOW);
+  digitalWrite(signal2[2], LOW);
+  digitalWrite(signal3[0], LOW);
+  digitalWrite(signal3[1], HIGH);
+  digitalWrite(signal3[2], LOW);
+  } 
+
+ void finish_fun(int i){
+ counter = old_counter;
+ Blynk.virtualWrite(V1,LOW);
+ Blynk.virtualWrite(V2,LOW);
+ Blynk.virtualWrite(V3,LOW);
+ flag[i]=0;
+ }
+
+WiFiClient wifiClient;
+bool connectBlynk()
+{
+  wifiClient.stop();
+  return wifiClient.connect(BLYNK_DEFAULT_DOMAIN, BLYNK_DEFAULT_PORT);
+}
+void connectWiFi()
+{ 
+  WiFi.begin((char*)ssid, (char*)pass);
+  while (WiFi.status() != WL_CONNECTED) 
+  { delay(500); }
+}
+
+void setup(void)
+{ 
+  Serial.begin(9600);
+  connectWiFi();
+  connectBlynk();
+  Blynk.begin(auth, ssid, pass);
+  timer.setInterval(1000L, myTimerEvent);
+  
+  for (int i = 0; i <3; i++) 
+  {
+    pinMode(signal1[i], OUTPUT);
+    pinMode(signal2[i], OUTPUT);
+    pinMode(signal3[i], OUTPUT);
+    }
+    }
+
+BLYNK_WRITE(V1)
+{
+  pinValue1 = param.asInt();
+  if(pinValue1==1) {  
+    old_counter=counter;
+    counter=1; 
+    flag[0]=1;}
+}
+
+BLYNK_WRITE(V2)
+{
+  pinValue2 = param.asInt();
+  if(pinValue2==1) {
+    old_counter=counter;
+    counter=1; 
+    flag[1]=1; }
+}
+
+BLYNK_WRITE(V3)
+{
+  pinValue3 = param.asInt();
+  if(pinValue3==1) {
+    old_counter=counter;
+    counter=1; 
+    flag[2]=1; } 
+}
+
+void loop(void)
+{
+if (WiFi.status() != WL_CONNECTED) {
+    connectWiFi();
+    return;
+  }
+if (!wifiClient.connected()) {
+    connectBlynk();
+    return;
+  }
+  Blynk.run();
+  timer.run(); // Initiates BlynkTimer
+if (flag[0]==1 || flag[1]==1 || flag[2]==1)  {
+if(flag[0]==1){
+   if(digitalRead(signal1[2]))     { TL1_G_Fun(); if (counter>=Green_time && flag_2[0]!=1) {finish_fun(0);} else if ((counter>=(Green_time+Yellow_time)) && flag_2[0]==1) {TL1_Y_Fun(); }} /// counter = old_counter;  flag[i]=0;
+   else if(digitalRead(signal1[1])){ TL1_Y_Fun(); if (counter>=Yellow_time  && flag_2[0]!=1) {TL1_G_Fun();  } else if((counter>=(Green_time+(2.*Yellow_time)))  && flag_2[0]==1){finish_fun(0);}}
+   else if(digitalRead(signal2[2]) || digitalRead(signal2[1])){if(counter<=Yellow_time) { TL2_Y_Fun();  flag_2[0]=1;} else if (counter>Yellow_time) {TL1_G_Fun();}}
+   else if(digitalRead(signal3[2]) || digitalRead(signal3[1])){if(counter<=Yellow_time) { TL3_Y_Fun();  flag_2[0]=1;} else if (counter>Yellow_time) {TL1_G_Fun();}}
+    }
+else if(flag[1]==1){
+   if(digitalRead(signal2[2]))     { TL2_G_Fun(); if (counter>=Green_time && flag_2[1]!=1) {finish_fun(1);} else if ((counter>=(Green_time+Yellow_time)) && flag_2[1]==1) {TL2_Y_Fun(); }} /// counter = old_counter;  flag[i]=0;
+   else if(digitalRead(signal2[1])){ TL2_Y_Fun(); if (counter>=Yellow_time  && flag_2[1]!=1) {TL2_G_Fun();  } else if((counter>=(Green_time+(2.*Yellow_time)))  && flag_2[1]==1){finish_fun(1);}}
+   else if(digitalRead(signal1[2]) || digitalRead(signal1[1])){if(counter<=Yellow_time) { TL1_Y_Fun(); flag_2[1]=1;} else if (counter>Yellow_time) {TL2_G_Fun(); }}
+   else if(digitalRead(signal3[2]) || digitalRead(signal3[1])){if(counter<=Yellow_time) { TL3_Y_Fun(); flag_2[1]=1;} else if (counter>Yellow_time) {TL2_G_Fun(); }}
+}
+else if(flag[2]==1){
+   if(digitalRead(signal3[2]))     { TL3_G_Fun(); if (counter>=Green_time && flag_2[2]!=1) {finish_fun(2);} else if ((counter>=(Green_time+Yellow_time)) && flag_2[2]==1) {TL3_Y_Fun(); }} /// counter = old_counter;  flag[i]=0;
+   else if(digitalRead(signal3[1])){ TL3_Y_Fun(); if (counter>=Yellow_time  && flag_2[2]!=1) {TL3_G_Fun();  } else if((counter>=(Green_time+(2.*Yellow_time)))  && flag_2[2]==1){finish_fun(2);}}
+   else if(digitalRead(signal1[2]) || digitalRead(signal1[1])){if(counter<=Yellow_time) { TL1_Y_Fun(); flag_2[2]=1;} else if (counter>Yellow_time) {TL3_G_Fun(); }}
+   else if(digitalRead(signal2[2]) || digitalRead(signal2[1])){if(counter<=Yellow_time) { TL2_Y_Fun(); flag_2[2]=1;} else if (counter>Yellow_time) {TL3_G_Fun(); }} 
+}
+   }
+   
+ else { 
+   if(counter>=1 && (counter<(1+Green_time)))  TL1_G_Fun();  // Making Green  LED at signal 1 and red LED's at other signal 
+   if((counter>=(1+Green_time)) && (counter<(1+Green_time+Yellow_time))) TL1_Y_Fun();  // Making Green LED at signal 1 LOW and making yellow LED at signal 1  
+   if((counter>=(1+Green_time+Yellow_time)) && (counter<(1+(2.*Green_time)+Yellow_time))) TL2_G_Fun();
+   if((counter>=(1+(2.*Green_time)+Yellow_time)) && (counter<(1+(2.*Green_time)+(2.*Yellow_time)))) TL2_Y_Fun();
+   if((counter>=(1+(2.*Green_time)+(2.*Yellow_time))) && (counter<(1+(3.*Green_time)+(2.*Yellow_time)))) TL3_G_Fun();
+   if((counter>=(1+(3.*Green_time)+(2.*Yellow_time))) && (counter<(1+(3.*Green_time)+(3.*Yellow_time)))) TL3_Y_Fun();  
+}
+}
